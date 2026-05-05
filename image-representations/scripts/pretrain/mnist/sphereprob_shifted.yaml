@@ -1,0 +1,85 @@
+defaults:
+  - _self_
+  - wandb: private.yaml
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+
+# disable hydra outputs
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+name: "sphereprob-mnist-shifted"
+method: "sphereprob"
+backbone:
+  name: "resnet18"
+method_kwargs:
+  proj_hidden_dim: 32
+  proj_output_dim: 16
+  prediction_precision: 0.1
+  recognition_precision: 0.1
+  predictor: True
+  loss:
+    type: "dual"  # "exact" or "approx"
+    entropy_multiplier: 2
+data:
+  dataset: mnist_shifted
+  train_path: "./datasets"
+  val_path: "datasets/imagenet100/val"
+  format: "image_folder"
+  num_workers: 4
+augmentations:
+  - rrc:
+      enabled: False
+      crop_min_scale: 0.5
+      crop_max_scale: 1.0
+    affine:
+      enabled: False
+      degrees: 20
+      translate: 0.1
+      min_scale: 0.8
+      max_scale: 1.0
+      shear: 15
+    color_jitter:
+      prob: 0.0
+      brightness: 0.8
+      contrast: 0.8
+      saturation: 0.8
+      hue: 0.2
+    grayscale:
+      prob: 0.0
+    gaussian_blur:
+      prob: 0.0
+    solarization:
+      prob: 0.0
+    equalization:
+      prob: 0.0
+    horizontal_flip:
+      prob: 0.0
+    crop_size: 32
+    num_crops: 2
+optimizer:
+  name: "adamw"
+  batch_size: 256
+  lr: 3.0e-5
+  classifier_lr: 1.0e-4
+  weight_decay: 0.02
+  kwargs:
+    betas: [0.9, 0.95]
+scheduler:
+  name: "none"
+checkpoint:
+  enabled: True
+  dir: "trained_models"
+  frequency: 1
+auto_resume:
+  enabled: False
+
+# overwrite PL stuff
+max_epochs: 100
+devices: [0]
+sync_batchnorm: True
+accelerator: "gpu"
+strategy: "ddp"
+precision: 16-mixed
